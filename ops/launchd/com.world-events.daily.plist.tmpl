@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 雛形。絶対パスを入れた実物は git に入れない（`ops/install.sh` で生成）。
+     毎晩 1:00 に日次ジョブ、続けて月次ジョブ（月初でなければ何もしない）。
+     スリープ解除は別途: sudo pmset repeat wakeorpoweron MTWRFSU 00:55:00 -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.world-events.daily</string>
+  <key>WorkingDirectory</key><string>@REPO_DIR@</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>docker compose run --rm worker run-daily &amp;&amp; docker compose run --rm worker run-monthly</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>1</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>@REPO_DIR@/data/daily.log</string>
+  <key>StandardErrorPath</key><string>@REPO_DIR@/data/daily.err.log</string>
+</dict>
+</plist>

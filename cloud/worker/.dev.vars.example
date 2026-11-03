@@ -1,0 +1,2 @@
+# wrangler dev 用（.dev.vars にコピー。git に入れない）。本番では絶対に設定しない
+ACCESS_DISABLED=1

@@ -1,0 +1,94 @@
+# ローカルで全体を動かす: docker compose up -d --build
+#   viewer: 閲覧画面 + API（wrangler dev。D1 はローカルの写し）→ http://localhost:8788
+#   mcp:    Claude Code 用の MCP サーバー（HTTP）               → http://localhost:8765/mcp（.mcp.json に登録済み）
+#   worker: パイプラインの CLI（重いので既定では起動しない）  → docker compose --profile pipeline run --rm worker <コマンド>
+# 正本の DB（data/）と生成物（dist/）はホストと共有する。ポートはこのマシンからだけ見えるように 127.0.0.1 に限る。
+#
+# 要約 LLM: ローカル（NEWS_ENV=local）はホストの Ollama（Docker からは Metal の GPU が使えないため）。
+# 本番（NEWS_ENV=prod）は Cloudflare の summarizer Worker を HTTPS で呼ぶ。
+
+x-app: &app
+  build: .
+  image: world-events:app
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    NEWS_DB_PATH: /app/data/news.db
+    NEWS_DIST_DIR: /app/dist
+    WRANGLER_PERSIST_TO: /app/.wrangler-state   # ローカルの D1。viewer と mcp で共有する
+    D1_DATABASE: world-events
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  volumes:
+    - ./data:/app/data
+    - ./dist:/app/dist
+    - wrangler-state:/app/.wrangler-state
+    # コードはイメージに入っているが、手元の変更をすぐ試せるよう読み取り専用で重ねる（依存を変えたら --build）
+    - ./src:/app/src:ro
+    - ./contracts:/app/contracts:ro
+    - ./migrations:/app/migrations:ro
+    - ./.claude/skills:/app/.claude/skills:ro
+
+services:
+  viewer:
+    <<: *app
+    working_dir: /app/cloud/worker
+    volumes:
+      - ./data:/app/data
+      - ./dist:/app/dist
+      - wrangler-state:/app/.wrangler-state
+      - ./src:/app/src:ro
+      - ./contracts:/app/contracts:ro
+      - ./migrations:/app/migrations:ro
+      - ./.claude/skills:/app/.claude/skills:ro
+      - ./cloud/worker/src:/app/cloud/worker/src:ro
+      - ./cloud/worker/public:/app/cloud/worker/public:ro
+      - ./cloud/shared:/app/cloud/shared:ro
+    # 起動のたびに migration を当て、dist/ のブリーフを取り込んで写してから画面を出す。Access は外す（ローカル専用）
+    command:
+      - sh
+      - -c
+      - >
+        npx wrangler d1 migrations apply world-events --local --persist-to /app/.wrangler-state &&
+        (cd /app && uv run --no-sync news publish --local --full || echo "publish をとばした（data/news.db が無いなど）") &&
+        exec npx wrangler dev --ip 0.0.0.0 --port 8788 --persist-to /app/.wrangler-state --var ACCESS_DISABLED:1
+    ports:
+      - "127.0.0.1:8788:8788"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8788/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      start_period: 60s
+
+  mcp:
+    <<: *app
+    command: ["uv", "run", "--no-sync", "news", "mcp", "--transport", "http", "--host", "0.0.0.0", "--port", "8765"]
+    ports:
+      - "127.0.0.1:8765:8765"
+    depends_on:
+      viewer:
+        condition: service_healthy   # publish(target=local) / pull_requests が viewer の D1 を使う
+
+  worker:
+    <<: *app
+    profiles: ["pipeline"]
+    build:
+      context: .
+      args:
+        UV_EXTRAS: "--extra extract --extra embed --extra vector --extra claude --extra mcp"
+    image: world-events:pipeline
+    volumes:
+      - ./data:/app/data
+      - ./dist:/app/dist
+      - wrangler-state:/app/.wrangler-state
+      - ./src:/app/src:ro
+      - ./contracts:/app/contracts:ro
+      - ./migrations:/app/migrations:ro
+      - ./.claude/skills:/app/.claude/skills:ro
+      - hf-cache:/root/.cache/huggingface   # bge-m3 のモデル（CPU で計算。初回に取得）
+    entrypoint: ["uv", "run", "--no-sync", "news"]
+    command: ["--help"]
+
+volumes:
+  hf-cache:
+  wrangler-state:

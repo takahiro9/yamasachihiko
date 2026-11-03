@@ -1,0 +1,24 @@
+name = "world-events-viewer"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+# 閲覧用の画面と API。D1（公開用の写し）を読み、変更依頼（change_requests）だけを書く。
+# 要約 LLM の summarizer とは別の Worker（上限・課金・権限を分けるため）。秘密の値は入れない。
+
+# 画面（静的ファイル）。Access の検証を静的ファイルにも効かせるため、すべての要求を Worker に通す
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "world-events"          # 作成: wrangler d1 create world-events
+database_id = "<d1-database-id>"
+migrations_dir = "../../migrations/shared"   # D1 のスキーマは Mac の shared と同じ。適用: npm run migrate
+
+[vars]
+# Cloudflare Access（人のログインを通す）。Zero Trust の Team domain と、この Worker の Application AUD
+ACCESS_TEAM_DOMAIN = "https://<team>.cloudflareaccess.com"
+ACCESS_AUD = "<application-aud>"
+# 画面から積める未反映の依頼の上限（Mac が取り込むまでの間に溜まりすぎないように）
+MAX_PENDING_REQUESTS = "200"

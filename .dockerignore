@@ -1,0 +1,15 @@
+.git
+.venv
+data
+dist
+bench
+**/node_modules
+**/.wrangler
+**/.dev.vars
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.DS_Store
+.env
+.claude/worktrees
+.claude/settings.local.json

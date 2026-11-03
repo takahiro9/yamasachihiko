@@ -1,0 +1,32 @@
+{
+  "$comment": "変更依頼（change_requests.kind）の一覧と payload の形。閲覧 UI（cloud/worker）・MCP・Mac の取り込み（publish/ops.py）が同じ定義で検証する。型: string / integer / string[] / object、末尾 ? は省略可。反映の実装は src/world_events/publish/ops.py の _apply。",
+  "kinds": {
+    "source.add": {
+      "label": "情報源を追加",
+      "fields": {
+        "id": "string", "type": "string", "url": "string?", "media": "string", "country": "string", "language": "string",
+        "interval_days": "integer?", "query": "string?", "extractor": "object?", "note": "string?", "reason": "string?"
+      }
+    },
+    "source.disable": { "label": "情報源を停止", "fields": { "id": "string", "reason": "string" } },
+    "source.enable": { "label": "情報源を再開", "fields": { "id": "string", "reason": "string?" } },
+    "theme.add": {
+      "label": "テーマを追加",
+      "fields": {
+        "id": "string", "kind": "string", "parent_id": "string?", "name": "string", "scope": "string",
+        "stance_axis": "string[]?", "phases": "string[]?", "reason": "string?"
+      }
+    },
+    "theme.update": {
+      "label": "テーマを改版",
+      "fields": { "id": "string", "name": "string?", "scope": "string?", "stance_axis": "string[]?", "phases": "string[]?", "reason": "string" }
+    },
+    "link.confirm": { "label": "つながりを確認", "fields": { "id": "string" } },
+    "link.reject": { "label": "つながりを却下", "fields": { "id": "string", "reason": "string?" } },
+    "event.confirm_theme": {
+      "label": "出来事にテーマを付ける",
+      "fields": { "event_id": "string", "theme_id": "string", "theme_version": "integer" }
+    },
+    "event.remove_theme": { "label": "出来事からテーマを外す", "fields": { "event_id": "string", "theme_id": "string" } }
+  }
+}

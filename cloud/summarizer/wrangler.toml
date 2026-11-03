@@ -1,0 +1,22 @@
+name = "summarizer"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+# 要約 LLM の本番の窓口（OpenAI 互換 → Workers AI）。閲覧用の cloud/worker とは別の Worker（上限・課金・権限を分けるため）。
+# 秘密の値は入れない。Cloudflare の ID や上限は秘密ではなく、変更をレビューしたいので git に置く。
+
+[ai]
+binding = "AI"
+
+[vars]
+# 論理モデル名（パイプラインの LLM_MODEL=summarizer）が指す実モデル。替えるときは bench --env prod を通してから deploy する
+SUMMARIZER_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
+# 1 日の上限（入力 + 出力トークンの目安）。超えたら 429。パイプライン側にも前日比の上限がある
+DAILY_TOKEN_LIMIT = "6000000"
+# Cloudflare Access（サービストークンだけ通す）。Zero Trust の Team domain と、この Worker の Application AUD
+ACCESS_TEAM_DOMAIN = "https://<team>.cloudflareaccess.com"
+ACCESS_AUD = "<application-aud>"
+
+# 1 日の使用量カウンタ。粗い上限なので結果整合の KV で足りる（作成: wrangler kv namespace create USAGE）
+[[kv_namespaces]]
+binding = "USAGE"
+id = "<kv-namespace-id>"

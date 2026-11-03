@@ -1,0 +1,17 @@
+# 正本の DB・生成物・秘密の値は git に入れない（システム構築案 §4.8）
+data/
+dist/
+.wrangler/
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+*.db.gz
+.DS_Store
+node_modules/
+.dev.vars
+# Claude Code のローカル設定・作業用ワークツリー（マシンごと。グローバルの ignore に頼らない）
+.claude/settings.local.json
+.claude/worktrees/

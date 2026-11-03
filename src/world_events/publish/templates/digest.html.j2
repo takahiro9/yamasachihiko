@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{ d.date }} の出来事</title>
+<style>
+  :root { --fg:#1b1f24; --muted:#656d76; --bg:#fff; --card:#f6f8fa; --accent:#0969da; --warn:#9a6700; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e6edf3; --muted:#8b949e; --bg:#0d1117; --card:#161b22; --accent:#58a6ff; --warn:#d29922; } }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:16px/1.7 system-ui,"Hiragino Sans",sans-serif; }
+  main { max-width:760px; margin:0 auto; }
+  h1 { font-size:1.4rem; } h2 { font-size:1.1rem; margin-top:2rem; border-bottom:1px solid var(--card); }
+  article { background:var(--card); border-radius:8px; padding:12px 16px; margin:12px 0; }
+  article h3 { margin:0 0 4px; font-size:1rem; }
+  .meta, .cont, .src { color:var(--muted); font-size:.85rem; } .src a { color:var(--accent); }
+  .spike, .notice { border-left:4px solid var(--warn); padding:4px 12px; margin:8px 0; }
+  nav a { color:var(--accent); }
+</style>
+</head>
+<body><main>
+<nav><a href="../index.html">最新</a></nav>
+<h1>{{ d.date }} の出来事</h1>
+{% for s in d.spikes %}<div class="spike">急な動き: <b>{{ s.name }}</b>{% if s.region %}（{{ s.region }}）{% endif %} — {{ s.count }} 件（平常 {{ s.baseline }} 件/日）</div>{% endfor %}
+{% for n in d.notices %}<div class="notice">{{ n }}</div>{% endfor %}
+
+{% macro card(e) %}
+<article>
+  <h3>{{ e.headline }}</h3>
+  <div class="meta">{{ e.region }} ・ 報道 {{ e.report_count }} 件 ・ {{ e.country_count }} か国</div>
+  {% if e.summary %}<p>{{ e.summary }}</p>{% endif %}
+  {% if e.continuation %}<div class="cont">↳ {{ e.continuation }}</div>{% endif %}
+  <div class="src">{% for r in e.reports %}<a href="{{ r.url }}" rel="noopener noreferrer">{{ r.media }}（{{ r.country }}）</a>{% if not loop.last %} / {% endif %}{% endfor %}</div>
+</article>
+{% endmacro %}
+
+<h2>今日の主な出来事</h2>
+{% for e in d.top %}{{ card(e) }}{% else %}<p>新しい出来事はありません。</p>{% endfor %}
+{% for s in d.sections %}
+<h2>{{ s.name }}</h2>
+{% for e in s.events %}{{ card(e) }}{% endfor %}
+{% endfor %}
+</main></body>
+</html>
